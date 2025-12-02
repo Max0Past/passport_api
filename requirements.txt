@@ -1,0 +1,10 @@
+pytesseract
+rapidocr-onnxruntime
+opencv-python-headless
+fastapi
+uvicorn
+python-multipart
+numpy
+requests
+pillow
+httpx

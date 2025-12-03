@@ -26,9 +26,9 @@ processor = PassportProcessor()
 
 class PassportResponse:
     """Response model for passport processing."""
-    def __init__(self, passport_id: str, face_image_base64: str):
+    def __init__(self, passport_id: str, face_image: str):
         self.passport_id = passport_id
-        self.face_image_base64 = face_image_base64
+        self.face_image = face_image
 
 
 @router.post("/upload")
@@ -42,7 +42,7 @@ async def upload_passport(file: UploadFile = File(...)):
         file: Passport image file (JPG, PNG, BMP, GIF)
         
     Returns:
-        JSON response with passport_id and face_image_base64
+        JSON response with passport_id and face_image (base64-encoded)
         
     Raises:
         400: Bad request (missing file, unsupported format, unreadable image)
@@ -111,7 +111,7 @@ async def upload_passport(file: UploadFile = File(...)):
         # Return response
         return {
             "passport_id": result.passport_id,
-            "face_image_base64": result.face_image_base64
+            "face_image": result.face_image
         }
     
     except HTTPException:

@@ -35,7 +35,7 @@ def demo_api_usage():
     image_files = sorted(sample_data_dir.glob("*.jpeg"))
     
     if not image_files:
-        print("\n❌ No sample images found. Please ensure sample data is in data/ folder")
+        print("\nFAIL: No sample images found. Please ensure sample data is in data/ folder")
         return
     
     # Test with first 3 images
@@ -52,7 +52,7 @@ def demo_api_usage():
             
             # Check response
             if response.status_code != 200:
-                print(f"❌ Request failed with status {response.status_code}")
+                print(f"FAIL: Request failed with status {response.status_code}")
                 print(f"   Error: {response.json().get('detail', 'Unknown error')}")
                 continue
             
@@ -61,7 +61,7 @@ def demo_api_usage():
             passport_id = data["passport_id"]
             face_base64 = data["face_image_base64"]
             
-            print(f"✓ Success!")
+            print(f"SUCCESS: Request completed!")
             print(f"  Passport ID: {passport_id}")
             print(f"  Face image size: {len(face_base64)} characters (base64)")
             
@@ -76,12 +76,12 @@ def demo_api_usage():
             print(f"  Face image dimensions: {face_image.size}")
             
         except requests.exceptions.ConnectionError:
-            print(f"❌ Connection error: Could not reach {api_url}")
+            print(f"FAIL: Connection error: Could not reach {api_url}")
             print(f"   Please ensure the API server is running: python run_api.py")
         except requests.exceptions.Timeout:
-            print(f"❌ Request timeout")
+            print(f"FAIL: Request timeout")
         except Exception as e:
-            print(f"❌ Error: {str(e)}")
+            print(f"FAIL: Error: {str(e)}")
     
     print("\n" + "="*60)
     print("DEMO COMPLETED")
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         try:
             response = requests.get("http://localhost:8000/health", timeout=2)
             if response.status_code == 200:
-                print("✓ API is ready!")
+                print("PASS: API is ready!")
                 demo_api_usage()
                 break
         except requests.exceptions.RequestException:
@@ -108,5 +108,5 @@ if __name__ == "__main__":
                 print(f"API not ready yet (attempt {attempt + 1}/{max_retries})... retrying in 2 seconds")
                 time.sleep(2)
             else:
-                print("\n❌ Could not connect to API server")
+                print("\nFAIL: Could not connect to API server")
                 print("Please start the API server with: python run_api.py")

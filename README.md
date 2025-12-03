@@ -4,7 +4,7 @@ A FastAPI application that processes passport images to extract passport identif
 
 ## Features
 
-- **Passport ID Extraction**: Automatically extracts 9-character passport identifiers using RapidOCR
+- **Passport ID Extraction**: Automatically extracts passport identifiers (9 digits or 1 letter + 8 digits) using RapidOCR with keyword-based search
 - **Face Detection**: Detects and crops facial regions from passport images using Haar Cascade classifiers
 - **Base64 Encoding**: Returns cropped face images as base64-encoded strings for easy integration
 - **Robust Error Handling**: Comprehensive error handling for various failure scenarios
@@ -39,87 +39,107 @@ passport_api/
 │   ├── __init__.py
 │   ├── test_recognition.py     # OCR and face detection tests
 │   └── test_api.py             # Full API endpoint tests
-├── data/                       # Sample passport images
+├── data/                       # Sample passport images (optional)
+├── Dockerfile                  # Docker configuration
 ├── requirements.txt            # Python dependencies
 ├── run_api.py                  # API startup script
 └── README.md                   # This file
 ```
 
-## Installation
+---
+
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.9+
-- pip or conda
+- pip or Docker
 
-### Setup
+### Option 1: Run with Docker (Recommended)
 
-1. **Clone/navigate to the project directory**
+1. **Build the Docker image:**
    ```bash
-   cd /home/max/Projects/passport_api
+   docker build -t passport_app .
    ```
 
-2. **Install dependencies**
+2. **Run the container:**
+   ```bash
+   docker run -p 8000:8000 passport_app
+   ```
+
+3. **Access the API:**
+   - Main API: http://localhost:8000
+   - Interactive Docs: http://localhost:8000/docs
+   - Alternative Docs: http://localhost:8000/redoc
+
+### Option 2: Run Locally without Docker
+
+1. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-## Usage
+2. **Start the server:**
+   ```bash
+   python run_api.py
+   ```
 
-### Starting the API Server
+3. **Custom host/port (optional):**
+   ```bash
+   python run_api.py --host 0.0.0.0 --port 8080
+   ```
 
-```bash
-# Start the server on localhost:8000
-python run_api.py
+4. **Development mode with auto-reload:**
+   ```bash
+   python run_api.py --reload
+   ```
 
-# Custom host and port
-python run_api.py --host 0.0.0.0 --port 8080
+---
 
-# Enable auto-reload for development
-python run_api.py --reload
-```
+## API Usage
 
-The API will be available at:
-- **Main API**: `http://localhost:8000`
-- **Interactive Docs**: `http://localhost:8000/docs` (Swagger UI)
-- **Alternative Docs**: `http://localhost:8000/redoc` (ReDoc)
-
-### API Endpoint
-
-#### POST `/api/v1/upload`
+### Endpoint: POST `/api/v1/upload`
 
 Upload a passport image and extract information.
 
 **Request:**
+- **Method**: POST
+- **Path**: `/api/v1/upload`
 - **Content-Type**: `multipart/form-data`
-- **Parameter**: `file` (required) - Image file (JPEG, PNG, BMP, or GIF)
+- **Form Data**: `image` (required) - Image file (JPEG, PNG, BMP, or GIF)
 
-**Response (200 OK):**
+**Success Response (200 OK):**
 ```json
 {
-  "passport_id": "728491530",
-  "face_image_base64": "iVBORw0KGgoAAAANSUhEUgAAAAUA..."
+  "passport_id": "A12345678",
+  "face_image": "/9j/4AAQSkZJRgABAQAAAQABAAD..."
 }
 ```
 
+- `passport_id`: String - Extracted passport identifier (9 digits or 1 letter + 8 digits)
+- `face_image`: String - Base64-encoded cropped face image (PNG format)
+
 **Error Responses:**
 
-- `400 Bad Request`: Invalid file format, empty file, or corrupted image
-- `422 Unprocessable Entity`: OCR extraction failed, face detection failed, or data parsing errors
-- `500 Internal Server Error`: Unexpected server error
+| Status Code | Description |
+|-------------|-------------|
+| 400 Bad Request | Invalid file format, empty file, or corrupted image |
+| 422 Unprocessable Entity | OCR extraction failed, face detection failed, or data parsing errors |
+| 500 Internal Server Error | Unexpected server error |
 
-### Example Usage with cURL
+---
+
+## Usage Examples
+
+### Using curl
 
 ```bash
-# Upload a passport image
 curl -X POST "http://localhost:8000/api/v1/upload" \
   -H "accept: application/json" \
-  -F "file=@/path/to/passport.jpg"
-
-# Response will include passport_id and base64-encoded face image
+  -F "image=@/path/to/passport.jpg"
 ```
 
-### Example Usage with Python
+### Using Python
 
 ```python
 import requests
@@ -135,7 +155,7 @@ with open("passport.jpg", "rb") as f:
 if response.status_code == 200:
     data = response.json()
     passport_id = data["passport_id"]
-    face_base64 = data["face_image_base64"]
+    face_base64 = data["face_image"]
     
     # Decode base64 to image
     face_image = Image.open(BytesIO(base64.b64decode(face_base64)))
@@ -147,6 +167,8 @@ else:
     print(f"Error: {response.status_code}")
     print(response.json())
 ```
+
+---
 
 ## Testing
 
@@ -162,7 +184,7 @@ This test:
 - Tests OCR text extraction
 - Tests face detection and cropping
 - Tests the full processing pipeline
-- Uses sample passport images from the `data/` folder
+- Saves output photos to `tests/output/` directory
 
 ### Test Complete API
 
@@ -177,6 +199,59 @@ This test:
 - Tests file upload with valid passport images
 - Tests error handling (missing file, unsupported format, invalid image)
 - Validates response structure and data
+- Saves API response photos to `tests/output/` directory
+
+---
+
+## Deployment with Docker
+
+### Build the Image
+
+```bash
+docker build -t passport_app .
+```
+
+### Run the Container
+
+```bash
+# Basic run
+docker run -p 8000:8000 passport_app
+
+# Run in detached mode
+docker run -d -p 8000:8000 --name passport_api passport_app
+
+# Run with custom port
+docker run -p 8080:8000 passport_app
+```
+
+### Verify the Container
+
+```bash
+# Check running containers
+docker ps
+
+# View logs
+docker logs passport_api
+
+# Stop the container
+docker stop passport_api
+
+# Remove the container
+docker rm passport_api
+```
+
+### Test the Deployed API
+
+```bash
+# Health check
+curl http://localhost:8000/health
+
+# Upload a passport image
+curl -X POST "http://localhost:8000/api/v1/upload" \
+  -F "image=@/path/to/passport.jpg"
+```
+
+---
 
 ## Exception Handling
 
@@ -207,45 +282,55 @@ PassportProcessingException (base)
 | Empty file | 400 | Uploaded file is empty |
 | Corrupted image | 400 | Failed to decode image |
 | No text detected | 422 | No text detected in image |
-| No passport ID found | 422 | No passport ID found in extracted text |
+| No passport ID found | 422 | No passport ID found matching required format |
 | No face detected | 422 | No face detected in the passport image |
 | Multiple faces | 422 | Multiple faces detected (expected exactly one) |
 | Face cropping failed | 422 | Error cropping face |
 
+---
+
 ## Implementation Details
 
-### OCR Extraction (`app/services/ocr_extractor.py`)
+### OCR Extraction
+
+**File**: `app/services/ocr_extractor.py`
 
 - Uses **RapidOCR** for fast, accurate text recognition
-- Implements image enhancement for better OCR results
-- Extracts 9-character passport ID sequences
-- Intelligent filtering to distinguish passport numbers from country names
+- Implements CLAHE image enhancement for better OCR results
+- Accepts two passport ID formats:
+  - 9 consecutive digits (e.g., "123456789")
+  - 1 letter followed by 8 digits (e.g., "A12345678")
+- Keyword-based search near:
+  - "Document Number"
+  - "Passport No"
+  - "Document No"
+  - "Passport Number"
+- Falls back to full text search if keywords not found
 
-### Face Detection (`app/services/face_detector.py`)
+### Face Detection
+
+**File**: `app/services/face_detector.py`
 
 - Uses **Haar Cascade Classifier** for face detection
+- Preprocesses images to grayscale for optimal detection
 - Validates that exactly one face is detected
-- Crops face region with configurable padding
+- Crops face region with 10% padding
 - Returns cropped face as numpy array
 
-### Image Processing (`app/utils/image_processing.py`)
+### Image Processing
+
+**File**: `app/utils/image_processing.py`
 
 - Validates file formats (JPG, PNG, BMP, GIF)
 - Loads and decodes images from bytes
-- Resizes large images for better processing
-- Enhances images for OCR using CLAHE (Contrast Limited Adaptive Histogram Equalization)
+- Resizes large images (>1920x1080) for better processing
 - Converts images to base64 for API responses
 
-### API Routes (`app/api/routes.py`)
-
-- Single endpoint: `POST /api/v1/upload`
-- File validation and error handling
-- Integrates OCR and face detection services
-- Returns structured JSON response
+---
 
 ## Configuration
 
-### Image Processing Parameters
+### Face Detection Parameters
 
 Configured in `app/services/face_detector.py`:
 - `SCALE_FACTOR`: 1.1 (face detection scale)
@@ -260,25 +345,23 @@ Configured in `app/services/face_detector.py`:
 - BMP (`.bmp`)
 - GIF (`.gif`)
 
-## Performance Considerations
-
-- Images larger than 1920x1080 are automatically resized to preserve processing speed
-- RapidOCR is optimized for CPU-bound text detection
-- Face detection uses efficient Haar Cascade classifier
-- Base64 encoding adds ~33% to response size
+---
 
 ## Dependencies
 
-- **fastapi**: Modern web framework for building APIs
-- **uvicorn**: ASGI web server
-- **python-multipart**: File upload handling
-- **opencv-python-headless**: Computer vision (no GUI)
-- **rapidocr-onnxruntime**: OCR text detection
-- **pillow**: Image processing library
-- **numpy**: Numerical computations
-- **pytesseract**: Tesseract OCR wrapper (optional, included for compatibility)
-- **requests**: HTTP library
-- **httpx**: Modern HTTP client
+Core dependencies listed in `requirements.txt`:
+
+- **fastapi** - Modern web framework for building APIs
+- **uvicorn** - ASGI web server
+- **python-multipart** - File upload handling
+- **opencv-python-headless** - Computer vision (no GUI)
+- **rapidocr-onnxruntime** - OCR text detection
+- **pillow** - Image processing library
+- **numpy** - Numerical computations
+- **requests** - HTTP library
+- **httpx** - Modern HTTP client
+
+---
 
 ## Troubleshooting
 
@@ -300,19 +383,30 @@ Configured in `app/services/face_detector.py`:
 - **Solution**: Check the error message in response for specific details
 - Common causes: OCR failed to detect text, face detection issues, or invalid image format
 
-## Future Enhancements
+**Issue**: Docker container won't start
+- **Solution**: Check logs with `docker logs passport_api`
+- Ensure port 8000 is not already in use
 
-- Support for additional document types (visas, IDs)
-- Batch processing of multiple images
-- Face recognition/matching capabilities
-- Document verification/validation
-- Support for non-Latin scripts
-- Caching layer for repeated images
-- Rate limiting and authentication
+**Issue**: Connection refused when testing
+- **Solution**: Ensure API server is running: `python run_api.py` or Docker container is up
+
+---
+
+## Performance Considerations
+
+- Images larger than 1920x1080 are automatically resized to preserve processing speed
+- RapidOCR is optimized for CPU-bound text detection
+- Face detection uses efficient Haar Cascade classifier
+- Base64 encoding adds ~33% to response size
+- Typical processing time: 2-5 seconds per image
+
+---
 
 ## License
 
 This project is provided as-is for passport processing applications.
+
+---
 
 ## Support
 

@@ -40,6 +40,20 @@ class FaceDetector:
                 f"Error initializing face detector: {str(e)}"
             )
     
+    def _preprocess_for_face_detection(self, image: np.ndarray) -> np.ndarray:
+        """
+        Preprocess image for face detection.
+        
+        Args:
+            image: Image as numpy array (BGR format)
+            
+        Returns:
+            Grayscale image for face detection
+        """
+        # Convert to grayscale for detection
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        return gray
+    
     def detect_faces(self, image: np.ndarray) -> list[Tuple[int, int, int, int]]:
         """
         Detect faces in image using cascade classifier.
@@ -54,8 +68,8 @@ class FaceDetector:
             FaceDetectionException: If detection fails
         """
         try:
-            # Convert to grayscale for detection
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            # Preprocess image for detection
+            gray = self._preprocess_for_face_detection(image)
             
             # Detect faces
             faces = self.face_cascade.detectMultiScale(
@@ -169,13 +183,14 @@ class FaceDetector:
             NoFaceDetectedException: If no face is found
             MultipleFacesDetectedException: If multiple faces are found
         """
+        # Detect faces to validate that exactly one face exists
         faces = self.detect_faces(image)
         self.validate_face_detection(faces)
         
         # Get the first (and only) face
         x, y, width, height = faces[0]
         
-        # Crop and return
+        # Crop and return the face
         face_crop = self.crop_face(image, x, y, width, height, padding_percent)
         
         return face_crop

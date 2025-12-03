@@ -183,27 +183,3 @@ def resize_image(
     
     resized = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
     return resized
-
-
-def enhance_image_for_ocr(image: np.ndarray) -> np.ndarray:
-    """
-    Enhance image for better OCR results.
-    
-    Args:
-        image: Image as numpy array (BGR format)
-        
-    Returns:
-        Enhanced image
-    """
-    try:
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(gray)
-        
-        return enhanced
-    except Exception:
-        # If enhancement fails, return grayscale version
-        return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

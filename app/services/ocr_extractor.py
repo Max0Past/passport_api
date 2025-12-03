@@ -12,15 +12,23 @@ from app.core.exceptions import (
     OCRExtractionException,
     PassportIDParsingException,
 )
-from app.utils.image_processing import enhance_image_for_ocr
 
 
 class PassportOCRExtractor:
     """Service for extracting text and passport ID from images using RapidOCR."""
     
-    # Passport ID pattern: 9 alphanumeric characters (typically)
-    PASSPORT_ID_PATTERN = r"[A-Z0-9]{9}"
+    # Passport ID patterns: 9 digits OR 1 letter followed by 8 digits
+    PASSPORT_ID_PATTERN_DIGITS = r"\b\d{9}\b"
+    PASSPORT_ID_PATTERN_LETTER = r"\b[A-Z]\d{8}\b"
     MIN_PASSPORT_ID_LENGTH = 9
+    
+    # Keywords to search near for passport ID
+    PASSPORT_KEYWORDS = [
+        "Document Number",
+        "Passport No",
+        "Document No", 
+        "Passport Number",
+    ]
     
     def __init__(self) -> None:
         """Initialize OCR engine."""
@@ -30,6 +38,29 @@ class PassportOCRExtractor:
             raise OCRExtractionException(
                 f"Failed to initialize OCR engine: {str(e)}"
             )
+    
+    def _preprocess_for_ocr(self, image: np.ndarray) -> np.ndarray:
+        """
+        Preprocess image for better OCR results.
+        
+        Args:
+            image: Image as numpy array (BGR format)
+            
+        Returns:
+            Enhanced grayscale image
+        """
+        try:
+            # Convert to grayscale
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            
+            # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            enhanced = clahe.apply(gray)
+            
+            return enhanced
+        except Exception:
+            # If enhancement fails, return grayscale version
+            return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
     def extract_text(self, image: np.ndarray) -> str:
         """
@@ -45,8 +76,8 @@ class PassportOCRExtractor:
             OCRExtractionException: If OCR extraction fails
         """
         try:
-            # Enhance image for better OCR results
-            enhanced_image = enhance_image_for_ocr(image)
+            # Preprocess image for better OCR results
+            enhanced_image = self._preprocess_for_ocr(image)
             
             # Run OCR
             result = self.ocr_engine(enhanced_image)
@@ -81,11 +112,14 @@ class PassportOCRExtractor:
         """
         Extract passport ID from OCR-extracted text.
         
-        The passport ID is typically a sequence of 9 alphanumeric characters.
-        Strategy: 
-        1. Look for lines containing "Passport No" or similar
-        2. Extract 9-character sequences from following text
-        3. Prefer sequences with only digits or mixed alphanumeric
+        The passport ID must be either:
+        - 9 consecutive digits (e.g., "123456789")
+        - 1 letter followed by 8 digits (e.g., "A12345678")
+        
+        Strategy:
+        1. Search for passport ID near keywords (Document Number, Passport No, etc.)
+        2. Fall back to searching entire text
+        3. Validate format strictly
         
         Args:
             text: Extracted text from OCR
@@ -108,30 +142,40 @@ class PassportOCRExtractor:
             # Remove common spacing/newline issues
             cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
             
-            # Strategy 1: Look for sequences that are exactly 9 characters (digits or alphanumeric)
-            # Passport IDs are typically all digits or digit-letter combinations
-            all_candidates = re.findall(r'[A-Z0-9]{9}', cleaned_text)
+            # Strategy 1: Look for passport ID near keywords
+            for keyword in self.PASSPORT_KEYWORDS:
+                keyword_upper = keyword.upper()
+                if keyword_upper in cleaned_text:
+                    # Get text around the keyword (300 chars after)
+                    keyword_pos = cleaned_text.find(keyword_upper)
+                    search_region = cleaned_text[keyword_pos:keyword_pos + 300]
+                    
+                    # Try to find passport ID in this region
+                    # First try: 9 digits
+                    digit_match = re.search(self.PASSPORT_ID_PATTERN_DIGITS, search_region)
+                    if digit_match:
+                        return digit_match.group(0)
+                    
+                    # Second try: 1 letter + 8 digits
+                    letter_match = re.search(self.PASSPORT_ID_PATTERN_LETTER, search_region)
+                    if letter_match:
+                        return letter_match.group(0)
             
-            if all_candidates:
-                # Filter to find the best candidate
-                # Prefer those that look like passport numbers (mostly digits or digits+letters)
-                digit_sequences = [c for c in all_candidates if c.isdigit()]
-                
-                if digit_sequences:
-                    passport_id = digit_sequences[0]
-                else:
-                    # Accept mixed alphanumeric
-                    passport_id = all_candidates[0]
-                
-                # Additional validation - reject common words
-                if passport_id not in ["LAPLANDIA", "LAPLANDIAN"]:
-                    if len(passport_id) == self.MIN_PASSPORT_ID_LENGTH:
-                        return passport_id
+            # Strategy 2: Search entire text if keyword search failed
+            # First try: 9 digits
+            digit_match = re.search(self.PASSPORT_ID_PATTERN_DIGITS, cleaned_text)
+            if digit_match:
+                return digit_match.group(0)
+            
+            # Second try: 1 letter + 8 digits
+            letter_match = re.search(self.PASSPORT_ID_PATTERN_LETTER, cleaned_text)
+            if letter_match:
+                return letter_match.group(0)
             
             # If we get here, no valid passport ID was found
             raise PassportIDParsingException(
-                f"No passport ID found matching pattern in text. "
-                f"Expected 9-character alphanumeric sequence."
+                f"No passport ID found matching required format. "
+                f"Expected: 9 digits OR 1 letter + 8 digits."
             )
         except PassportIDParsingException:
             raise

@@ -52,7 +52,7 @@ class PassportProcessor:
             # Create result object
             result = PassportProcessingResult(
                 passport_id=passport_id,
-                face_image_base64=face_base64,
+                face_image=face_base64,
                 original_filename=original_filename
             )
             

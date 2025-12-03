@@ -8,5 +8,5 @@ from dataclasses import dataclass
 class PassportProcessingResult:
     """Result of passport image processing."""
     passport_id: str
-    face_image_base64: str
+    face_image: str
     original_filename: str | None = None

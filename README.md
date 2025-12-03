@@ -140,44 +140,8 @@ curl -X POST "http://localhost:8000/api/v1/upload" \
 ```
 
 ### Using Python
-
-```python
-import requests
-import base64
-from PIL import Image
-from io import BytesIO
-
-# Upload passport image
-with open("passport.jpg", "rb") as f:
-    files = {"file": f}
-    response = requests.post("http://localhost:8000/api/v1/upload", files=files)
-
-if response.status_code == 200:
-    data = response.json()
-    passport_id = data["passport_id"]
-    face_base64 = data["face_image"]
-    
-    # Decode base64 to image
-    face_image = Image.open(BytesIO(base64.b64decode(face_base64)))
-    face_image.save("extracted_face.png")
-    
-    print(f"Passport ID: {passport_id}")
-    print(f"Face image saved: extracted_face.png")
-else:
-    print(f"Error: {response.status_code}")
-    print(response.json())
-```
-
----
-
-## Testing
-
-### Test Recognition Technologies
-
-Test OCR and face detection independently:
-
 ```bash
-python tests/test_recognition.py
+python tests/test_api.py
 ```
 
 This test:
@@ -227,26 +191,20 @@ docker run -p 8080:8000 passport_app
 ### Verify the Container
 
 ```bash
-# Check running containers
 docker ps
 
-# View logs
 docker logs passport_api
 
-# Stop the container
 docker stop passport_api
 
-# Remove the container
 docker rm passport_api
 ```
 
 ### Test the Deployed API
 
 ```bash
-# Health check
 curl http://localhost:8000/health
 
-# Upload a passport image
 curl -X POST "http://localhost:8000/api/v1/upload" \
   -F "image=@/path/to/passport.jpg"
 ```
@@ -397,17 +355,4 @@ Core dependencies listed in `requirements.txt`:
 - Images larger than 1920x1080 are automatically resized to preserve processing speed
 - RapidOCR is optimized for CPU-bound text detection
 - Face detection uses efficient Haar Cascade classifier
-- Base64 encoding adds ~33% to response size
 - Typical processing time: 2-5 seconds per image
-
----
-
-## License
-
-This project is provided as-is for passport processing applications.
-
----
-
-## Support
-
-For issues, questions, or contributions, please refer to the project repository or contact the development team.

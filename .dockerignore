@@ -1,0 +1,8 @@
+data/
+*.code-workspace
+.env
+.gitignore
+.git
+*.pyc
+.git/
+tests/output/

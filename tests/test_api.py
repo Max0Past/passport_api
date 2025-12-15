@@ -48,7 +48,7 @@ def test_api_with_testclient():
     
     # Find sample images
     data_dir = Path(__file__).parent.parent / "data"
-    sample_data_dir = data_dir / "Trainee Test Assignment\sample_data"
+    sample_data_dir = data_dir / "sample_data"
     
     image_files = sorted(sample_data_dir.glob("*.jpeg")) + sorted(sample_data_dir.glob("*.jpg"))
     

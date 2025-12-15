@@ -203,7 +203,7 @@ def main():
     
     # Find sample data
     data_dir = Path(__file__).parent.parent / "data"
-    sample_data_dir = data_dir / "Trainee Test Assignment\sample_data"
+    sample_data_dir = data_dir / "sample_data"
     
     if not sample_data_dir.exists():
         print(f"\nFAIL: Sample data directory not found: {sample_data_dir}")

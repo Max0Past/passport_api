@@ -16,8 +16,8 @@ from app.core.exceptions import (
 )
 
 
-SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".gif"}
-MAX_FILE_SIZE_MB = 10
+SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png"}
+MAX_FILE_SIZE_MB = 100
 
 
 def validate_file_format(filename: str) -> None:

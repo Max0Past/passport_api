@@ -16,7 +16,7 @@ from app.core.exceptions import (
     MultipleFacesDetectedException,
 )
 from app.services.processor import PassportProcessor
-from app.utils.image_processing import validate_file_format, load_image_from_bytes
+from app.utils.image_processing import validate_file_format, load_image_from_bytes, MAX_FILE_SIZE_MB
 
 
 # Initialize router and processor
@@ -32,14 +32,14 @@ class PassportResponse:
 
 
 @router.post("/upload")
-async def upload_passport(file: UploadFile = File(...)):
+def upload_passport(file: UploadFile = File(...)):
     """
     Upload and process a passport image.
     
     Extract passport ID and detect/crop face region.
     
     Args:
-        file: Passport image file (JPG, PNG, BMP, GIF)
+        file: Passport image file (JPG, PNG)
         
     Returns:
         JSON response with passport_id and face_image (base64-encoded)
@@ -65,9 +65,28 @@ async def upload_passport(file: UploadFile = File(...)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e)
             )
+            
+        # Validate file size
+        try:
+            file.file.seek(0, 2)
+            file_size = file.file.tell()
+            file.file.seek(0)
+            
+            if file_size > MAX_FILE_SIZE_MB * 1024 * 1024:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"File too large. Maximum size allowed is {MAX_FILE_SIZE_MB}MB"
+                )
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Error checking file size: {str(e)}"
+            )
         
         # Read file content
-        file_content = await file.read()
+        file_content = file.file.read()
         
         if not file_content:
             raise HTTPException(

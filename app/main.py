@@ -19,14 +19,7 @@ app = FastAPI(
 app.include_router(router)
 
 
-@app.get("/")
-async def root():
-    """Health check endpoint."""
-    return {
-        "status": "ok",
-        "message": "Passport Processing API is running",
-        "version": "1.0.0"
-    }
+
 
 
 @app.get("/health")
